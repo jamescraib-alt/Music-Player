@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spin – local music player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+<style>
+:root{
+  --bg:#f3f1f8;--panel:#e4e0f0;--ink:#1a1830;--mute:#6b6785;--accent:#e0246a;--line:#cfc9e2;
+  --vinyl:#15131f;--vinyl2:#272336;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12111c;--panel:#1c1a2b;--ink:#ece9f7;--mute:#9a96b5;--accent:#ff5c93;--line:#2e2b44;
+    --vinyl:#0b0a12;--vinyl2:#201d30;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12111c;--panel:#1c1a2b;--ink:#ece9f7;--mute:#9a96b5;--accent:#ff5c93;--line:#2e2b44;
+  --vinyl:#0b0a12;--vinyl2:#201d30;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;justify-content:space-between;align-items:center;padding:18px 28px}
+header h1{font-size:1.5rem;font-weight:800;letter-spacing:-.03em}
+.hbtns{display:flex;gap:8px}
+.pill{padding:9px 16px;border-radius:99px;background:var(--panel);font-weight:600;font-size:.9rem}
+.pill.main{background:var(--accent);color:#fff}
+main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(320px,1fr) minmax(300px,1fr);gap:28px;padding:0 28px 28px}
+.deck{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;min-height:0}
+.record{position:relative;width:min(46vh,380px,80vw);aspect-ratio:1;border-radius:50%;
+  background:repeating-radial-gradient(circle,var(--vinyl) 0 3px,var(--vinyl2) 3px 4px);
+  box-shadow:0 18px 40px rgba(20,10,50,.35);animation:spin 6s linear infinite;animation-play-state:paused}
+.record.on{animation-play-state:running}
+.record .label{position:absolute;inset:31%;border-radius:50%;background:var(--accent) center/cover;overflow:hidden}
+.record::after{content:"";position:absolute;left:50%;top:50%;width:4%;aspect-ratio:1;border-radius:50%;background:var(--bg);transform:translate(-50%,-50%)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.record{animation:none}}
+.meta{text-align:center;max-width:100%}
+.meta .t{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta .a{color:var(--mute);margin-top:2px}
+.seek{width:min(420px,100%);display:flex;align-items:center;gap:10px;font-size:.8rem;color:var(--mute);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:5px;border-radius:9px;background:linear-gradient(90deg,var(--accent) var(--p,0%),var(--line) var(--p,0%))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--ink);border:0}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--ink);border:0}
+.ctrl{display:flex;align-items:center;gap:6px}
+.ctrl button{width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
+.ctrl button:hover{background:var(--panel)}
+.ctrl button.active{color:var(--accent)}
+.ctrl .play{width:62px;height:62px;background:var(--accent);color:#fff}
+.ctrl .play:hover{background:var(--accent);filter:brightness(1.1)}
+svg{width:22px;height:22px;fill:currentColor}
+.play svg{width:28px;height:28px}
+.vol{display:flex;align-items:center;gap:8px;color:var(--mute)}
+.vol input{width:110px}
+.queue{background:var(--panel);border-radius:18px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.queue h2{font-size:1rem;padding:16px 20px 10px;font-weight:600;color:var(--mute)}
+#list{list-style:none;padding:0 8px 8px;overflow-y:auto;flex:1}
+#list li button{width:100%;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:12px;text-align:left}
+#list li button:hover{background:var(--bg)}
+#list li.cur button{background:var(--bg);color:var(--accent)}
+#list img,#list .ph{width:42px;height:42px;border-radius:8px;object-fit:cover;background:var(--line);flex:none}
+#list .tx{min-width:0}
+#list .tx b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#list .tx span{font-size:.82rem;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.empty{margin:auto;text-align:center;padding:30px;color:var(--mute);line-height:1.5}
+.empty b{display:block;color:var(--ink);font-size:1.2rem;margin-bottom:6px}
+.drop{outline:3px dashed var(--accent);outline-offset:-10px}
+@media (max-width:760px){
+  body{height:auto;min-height:100%}
+  main{grid-template-columns:1fr;padding:0 16px 20px}
+  header{padding:14px 16px}
+  .queue{max-height:50vh}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Spin</h1>
+  <div class="hbtns">
+    <button class="pill" id="theme">Theme</button>
+    <button class="pill" id="addFolder">Add folder</button>
+    <button class="pill main" id="addFiles">Add songs</button>
+  </div>
+</header>
+<input type="file" id="fileIn" accept="audio/*,.mp3,.m4a,.flac,.wav,.ogg,.opus,.aac" multiple hidden>
+<input type="file" id="folderIn" webkitdirectory multiple hidden>
+
+<main id="app">
+  <section class="deck">
+    <div class="record" id="rec"><div class="label" id="cover"></div></div>
+    <div class="meta"><div class="t" id="title">Nothing playing</div><div class="a" id="artist">Add songs to start</div></div>
+    <div class="seek"><span id="cur">0:00</span><input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek"><span id="dur">0:00</span></div>
+    <div class="ctrl">
+      <button id="shuf" aria-label="Shuffle" title="Shuffle"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4V8h-2.6l-3 3.8-1.6-1.3L12.4 6.6A2 2 0 0 1 14 6h3zM3 7h4.2a2 2 0 0 1 1.6.8L15.4 16H17v-3l4 4-4 4v-3h-2.6a2 2 0 0 1-1.6-.8L6.2 9H3zM3 16h4l1.7-2.1 1.6 1.3L8.7 17.4A2 2 0 0 1 7.2 18H3z"/></svg></button>
+      <button id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="play" id="play" aria-label="Play"><svg viewBox="0 0 24 24" id="pi"><path d="M8 5v14l11-7z"/></svg></button>
+      <button id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7L4 19z"/></svg></button>
+      <button id="rep" aria-label="Repeat" title="Repeat: off"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2zM17 17H7v-3l-4 4 4 4v-3h12v-6h-2z"/></svg></button>
+    </div>
+    <div class="vol"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zM16.5 12A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg><input type="range" id="vol" min="0" max="100" value="80" aria-label="Volume"></div>
+  </section>
+  <section class="queue">
+    <h2 id="qh">Queue</h2>
+    <ul id="list"></ul>
+  </section>
+</main>
+<audio id="au" preload="metadata"></audio>
+
+<script>
+const $ = id => document.getElementById(id);
+const au = $('au');
+const AUDIO_EXT = /\.(mp3|m4a|aac|flac|wav|ogg|oga|opus|weba|wma)$/i;
+let tracks = [], idx = -1, shuffle = false, repeat = 0;
+
+const fmt = s => isFinite(s) ? Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0') : '0:00';
+const setFill = (el, p) => el.style.setProperty('--p', p + '%');
+
+/* ---------- adding files ---------- */
+function addFiles(fileList) {
+  const files = [...fileList].filter(f => f.type.startsWith('audio/') || AUDIO_EXT.test(f.name));
+  if (!files.length) return;
+  const wasEmpty = tracks.length === 0;
+  files.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric:true}));
+  files.forEach(file => {
+    const t = { file, url: URL.createObjectURL(file),
+      title: file.name.replace(/\.[^.]+$/, ''), artist: 'Unknown artist', cover: null };
+    tracks.push(t);
+    readTags(t);
+  });
+  render();
+  if (wasEmpty) load(0, true);
+}
+
+function readTags(t) {
+  if (!window.jsmediatags) return;
+  jsmediatags.read(t.file, {
+    onSuccess: ({tags}) => {
+      if (tags.title) t.title = tags.title;
+      if (tags.artist) t.artist = tags.artist;
+      if (tags.picture) {
+        const {data, format} = tags.picture;
+        t.cover = URL.createObjectURL(new Blob([new Uint8Array(data)], {type: format}));
+      }
+      render();
+      if (tracks[idx] === t) showInfo();
+    },
+    onError: () => {}
+  });
+}
+
+/* ---------- playback ---------- */
+function load(i, autoplay) {
+  if (i < 0 || i >= tracks.length) return;
+  idx = i;
+  au.src = tracks[i].url;
+  showInfo(); render();
+  if (autoplay) au.play().catch(() => {});
+}
+
+function showInfo() {
+  const t = tracks[idx];
+  if (!t) return;
+  $('title').textContent = t.title;
+  $('artist').textContent = t.artist;
+  $('cover').style.backgroundImage = t.cover ? `url("${t.cover}")` : 'none';
+  document.title = t.title + ' – Spin';
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: t.title, artist: t.artist,
+      artwork: t.cover ? [{src: t.cover}] : []
+    });
+  }
+}
+
+function step(dir) {
+  if (!tracks.length) return;
+  if (shuffle && tracks.length > 1) {
+    let n; do { n = Math.floor(Math.random() * tracks.length); } while (n === idx);
+    return load(n, true);
+  }
+  let n = idx + dir;
+  if (n >= tracks.length) n = 0;
+  if (n < 0) n = tracks.length - 1;
+  load(n, true);
+}
+
+function toggle() {
+  if (!tracks.length) return $('fileIn').click();
+  au.paused ? au.play().catch(() => {}) : au.pause();
+}
+
+au.addEventListener('play', sync);
+au.addEventListener('pause', sync);
+function sync() {
+  $('rec').classList.toggle('on', !au.paused);
+  $('pi').innerHTML = au.paused ? '<path d="M8 5v14l11-7z"/>' : '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
+  $('play').setAttribute('aria-label', au.paused ? 'Play' : 'Pause');
+}
+au.addEventListener('timeupdate', () => {
+  const p = au.duration ? au.currentTime / au.duration * 1000 : 0;
+  if (!seeking) { $('seek').value = p; setFill($('seek'), p / 10); }
+  $('cur').textContent = fmt(au.currentTime);
+});
+au.addEventListener('loadedmetadata', () => $('dur').textContent = fmt(au.duration));
+au.addEventListener('ended', () => {
+  if (repeat === 2) { au.currentTime = 0; au.play(); }
+  else if (repeat === 0 && idx === tracks.length - 1 && !shuffle) { sync(); }
+  else step(1);
+});
+au.addEventListener('error', () => {
+  if (tracks[idx]) { $('artist').textContent = 'This file can’t be played in your browser'; }
+});
+
+let seeking = false;
+$('seek').addEventListener('input', e => { seeking = true; setFill(e.target, e.target.value / 10); $('cur').textContent = fmt(au.duration * e.target.value / 1000); });
+$('seek').addEventListener('change', e => { if (au.duration) au.currentTime = au.duration * e.target.value / 1000; seeking = false; });
+$('vol').addEventListener('input', e => { au.volume = e.target.value / 100; setFill(e.target, e.target.value); });
+au.volume = .8; setFill($('vol'), 80);
+
+$('play').onclick = toggle;
+$('prev').onclick = () => au.currentTime > 3 ? (au.currentTime = 0) : step(-1);
+$('next').onclick = () => step(1);
+$('shuf').onclick = e => { shuffle = !shuffle; e.currentTarget.classList.toggle('active', shuffle); e.currentTarget.title = 'Shuffle: ' + (shuffle ? 'on' : 'off'); };
+$('rep').onclick = e => {
+  repeat = (repeat + 1) % 3;
+  const b = e.currentTarget;
+  b.classList.toggle('active', repeat > 0);
+  b.title = 'Repeat: ' + ['off', 'all', 'one song'][repeat];
+};
+
+/* ---------- queue ---------- */
+function render() {
+  const ul = $('list');
+  ul.textContent = '';
+  $('qh').textContent = tracks.length ? `Queue (${tracks.length})` : 'Queue';
+  if (!tracks.length) {
+    const d = document.createElement('li');
+    d.className = 'empty';
+    d.innerHTML = '<b>Drop your songs here</b>MP3, M4A, FLAC, WAV or OGG files from your computer. Nothing is uploaded anywhere; files play straight from your device.';
+    ul.appendChild(d);
+    return;
+  }
+  tracks.forEach((t, i) => {
+    const li = document.createElement('li');
+    if (i === idx) li.className = 'cur';
+    const b = document.createElement('button');
+    let art;
+    if (t.cover) { art = document.createElement('img'); art.src = t.cover; art.alt = ''; }
+    else { art = document.createElement('div'); art.className = 'ph'; }
+    const tx = document.createElement('div');
+    tx.className = 'tx';
+    const n = document.createElement('b'); n.textContent = t.title;
+    const a = document.createElement('span'); a.textContent = t.artist;
+    tx.append(n, a);
+    b.append(art, tx);
+    b.onclick = () => load(i, true);
+    li.appendChild(b);
+    ul.appendChild(li);
+  });
+  const cur = ul.querySelector('.cur');
+  if (cur) cur.scrollIntoView({block: 'nearest'});
+}
+
+/* ---------- input: buttons, drag & drop, keys ---------- */
+$('addFiles').onclick = () => $('fileIn').click();
+$('addFolder').onclick = () => $('folderIn').click();
+$('fileIn').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('folderIn').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+
+['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); $('app').classList.add('drop'); }));
+['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); $('app').classList.remove('drop'); }));
+document.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.target.type === 'range') return;
+  if (e.code === 'Space') { e.preventDefault(); toggle(); }
+  else if (e.code === 'ArrowRight') au.currentTime = Math.min(au.duration || 0, au.currentTime + 10);
+  else if (e.code === 'ArrowLeft') au.currentTime = Math.max(0, au.currentTime - 10);
+  else if (e.key === 'n') step(1);
+  else if (e.key === 'p') step(-1);
+});
+
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.setActionHandler('play', toggle);
+  navigator.mediaSession.setActionHandler('pause', toggle);
+  navigator.mediaSession.setActionHandler('previoustrack', () => step(-1));
+  navigator.mediaSession.setActionHandler('nexttrack', () => step(1));
+}
+
+/* ---------- theme ---------- */
+$('theme').onclick = () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+};
+
+render();
+</script>
+</body>
+</html>
